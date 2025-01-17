@@ -16,9 +16,12 @@ This is a list of the things you need to get started developing in this project:
   curl -LsSf https://astral.sh/uv/install.sh | sh
   ```
 
-* [Git Large File Storage (LFS)](https://git-lfs.com/) - allows us to store model artifact files on git hub 
+* [Git Large File Storage (LFS)](https://git-lfs.com/) - allows us to store model artifact files on git hub. From root run:
     ``` sh
     sudo apt-get install git-lfs
+    git lfs install
+    git config --global http.timeout 600  
+
     ```
 ### Installation
 
@@ -26,16 +29,16 @@ This is a list of the things you need to get started developing in this project:
     ```sh
     git clone git@github.com:nedekriek/MoL-ARC-AGI.git
     ```
-2. Setup git large file storage
-    ```
-    git lfs install
-    ```
 
-3. Initialise git submodule 
+2. Initialise git submodule 
     ```sh 
     git submodule update --init
     ```  
 
+3. Initialise virtual env
+    ``` sh
+    uv sync
+    ```
 ### Development 
 
 1. Make sure all Prerequisites are installed.
