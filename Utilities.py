@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 #####################################################
 
-### Define the colors
+### Define the colors 
 
 cmap = colors.ListedColormap(
     ['#000000', '#0074D9','#FF4136','#2ECC40','#FFDC00',
