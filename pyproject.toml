@@ -21,6 +21,8 @@ dependencies = [
   "numpy>=2.2.1",
   "matplotlib>=3.10.0",
   "opencv-python>=4.11.0.86",
+  "diskcache>=5.6.3",
+  "bitsandbytes",
 ]
 
 [tool.uv.sources]
@@ -30,8 +32,14 @@ torch = [
 torchvision = [
     { index = "pytorch-cpu" },
 ]
+bitsandbytes = { path = "../bitsandbytes" }
 
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.2",
+]
