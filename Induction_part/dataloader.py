@@ -2,6 +2,7 @@
 import os
 import json
 import numpy as np
+from problem_class import problem
 
 
 ################################################
@@ -16,6 +17,6 @@ def load_data(mode):
         with open(os.path.join(folder_path, filename), 'r') as file:
             data = json.load(file)
             id = filename.split('.')[0]
-            problem_instance = problem(id = id, train = data['train'], tests = data['test'], type = mode)
+            problem_instance = problem(id = id, train = data['train'], test = data['test'], type = mode)
             problems.append(problem_instance)
     return problems

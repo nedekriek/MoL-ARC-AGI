@@ -1,5 +1,5 @@
 import time
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from vllm import LLM, SamplingParams
 from vllm.lora.request import LoRARequest
 import datetime
@@ -18,7 +18,7 @@ from problem_class import problem, apply_program
 
 
 # Load the configuration file
-with open('config.json', 'r') as config_file:
+with open('Induction_part/config.json', 'r') as config_file:
     config = json.load(config_file)
 
 ##################################
@@ -48,19 +48,22 @@ if LORA_DIR:
 else:
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 
+
 #################################################
 # Set the device and load the model as class LLM in vllm
 #################################################
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-if LORA_DIR:
-    llm = LLM(model=BASE_MODEL, enable_lora=True, max_lora_rank=256, max_model_len=12000,
-            enable_prefix_caching=True, tensor_parallel_size=TENSOR_PARALLEL)
-    lora_request=LoRARequest("barc_adapter", 1, LORA_DIR)
-else:
-    llm = LLM(model=BASE_MODEL, enable_lora=False, max_model_len=12000,
-            enable_prefix_caching=True, tensor_parallel_size=TENSOR_PARALLEL, device = device)
+
+llm = AutoModelForCausalLM.from_pretrained(BASE_MODEL).to(device)
+#if LORA_DIR:
+#    llm = LLM(model=BASE_MODEL, enable_lora=True, max_lora_rank=256, max_model_len=12000,
+#            enable_prefix_caching=True, tensor_parallel_size=TENSOR_PARALLEL)
+#    lora_request=LoRARequest("barc_adapter", 1, LORA_DIR)
+# else:
+#    llm = LLM(model=BASE_MODEL, enable_lora=False, max_model_len=12000,
+#            enable_prefix_caching=True, tensor_parallel_size=TENSOR_PARALLEL)
     
 
 #################################################
@@ -121,9 +124,11 @@ def main():
             i = 0
             for program in problem.program:
                 i += 1
-                f.write('the {i}th program\n')
+                f.write(f'the {i}th program\n')
                 json.dump(program, f)
                 f.write('\n')
 
 if __name__ == '__main__':
     main()
+else:
+    print('Induction part is not running as the main program.')

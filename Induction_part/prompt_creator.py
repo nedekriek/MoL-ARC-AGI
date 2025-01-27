@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 import json
-from dataloader import problem, load_data
+from dataloader import load_data
+from problem_class import problem
 
 ################################################
 # This is the color map

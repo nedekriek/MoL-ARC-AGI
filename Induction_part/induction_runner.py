@@ -5,6 +5,7 @@ from tqdm import tqdm
 import json
 import torch
 import numpy as np
+from problem_class import problem
 # Import the standard modules we need.
 
 #################################################
@@ -27,8 +28,8 @@ class inductor:
             {"role":"user", "content":prompt[1]['content']}
             ], tokenize=False, add_generation_prompt=True)
         with torch.no_grad():
-            outputs = self.model.generate(**inputs)
-        return outputs
+            output = self.model.generate(**inputs)
+        return output
     
     def model_sample(self, problem, sample_number:int):
         outputlist = []
