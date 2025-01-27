@@ -3,25 +3,6 @@ import os
 import json
 import numpy as np
 
-################################################
-# We create a class to represent a data token
-################################################
-
-
-class problem:
-    def __init__(self, id = None, train = None, test = None, type = None, prompt = None, program = None):
-        self.id = id
-        self.train = train
-        self.test = test
-        self.type = type
-        self.prompt = prompt
-        self.program = program
-    
-    def give_prompt(self, prompt):
-        self.prompt = prompt
-
-    def give_program(self, program):
-        self.program = program
 
 ################################################
 # The function to load the data

@@ -12,7 +12,8 @@ import os
 
 from induction_runner import inductor
 from prompt_creator import prompt_creator
-from dataloader import problem, load_data
+from dataloader import load_data
+from problem_class import problem, apply_program
 # Import the inductor and prompt_creator from the previous snippets.
 
 
@@ -72,6 +73,17 @@ folderpath = 'ARC-AGI/data/' + mode
 # Induction
 #################################################
 
+def give_accuracy(problems):
+    correct = 0
+    total = 0
+    for problem in problems:
+        for example in problem.test:
+            total += 1
+            if len(problem.program) == 0:
+                continue
+            if example['output'] == apply_program(example['input'], problem.program[0]):
+                correct += 1
+    return correct/total
 
 
 def main():
@@ -95,18 +107,23 @@ def main():
     for problem in tqdm(problems):
         program = inductor_obj.model_sample(problem, num_of_samples_per_problem)
         problem.give_program(program)
-    
+        problem.filter_program()
+
+    if mode == 'training':
+        print('Training Accuracy:', give_accuracy(problems))
+    elif mode == 'evaluation':
+        pass
+
     # Save the programs
-    with open('ARC-AGI/data/' + mode + '_with_programs.json', 'w') as file:
-        for problem in problems:
-            json.dump(problem.id, file)
-            file.write('\n')
+    for problem in problems:
+
+        with open('Programs' + '/' + mode + '/' + problem.id + '.json', 'w') as f:
+            i = 0
             for program in problem.program:
-                json.dump(program, file, default=lambda x: x.__dict__)
-                file.write('\n')
+                i += 1
+                f.write('the {i}th program\n')
+                json.dump(program, f)
+                f.write('\n')
 
-
-    
-        
-        
-
+if __name__ == '__main__':
+    main()
