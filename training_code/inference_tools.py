@@ -66,8 +66,8 @@ def explore(model, logits, path, eos, max_new_tokens, max_score, pos, cache, sco
                     logits, cache[0] = model(
                         input_ids=torch.full((1, 1), i, device=model.device),
                         position_ids=torch.full((1, 1), pos, device=model.device),
-                        past_key_values=cache[0],
-                    )[:2]
+                        past_key_values=cache[0], 
+                        )[:2]
                     logits = logits[0]  # unbatch
                 # explore suffixes
                 suffixes = explore(model, logits, path, eos, max_new_tokens-1, max_score, pos+1, cache, next_score)
@@ -105,6 +105,16 @@ def dfs(model, input_ids, eos_token_id, max_new_tokens, min_prob, pos=None, atte
     logits, cache = model(input_ids=input_ids[torch.newaxis])[:2]
     logits = logits[0, pos-1:]
 
+    # print(f"logits shape in dfs: {logits.shape}")
+    # >> tensor with shape (output_sequence length, vocab size)
+    # Each entry encodes the models confidence that a position in the output is inhabited by a particular token 
+    # logits[0, :] returns the logits for the first token in the output sequence and should sum to 1
+    # if logits.shape[0] != 1:
+    #     random_idx = torch.randint(0, logits.shape[0]-1, (1,)).item()
+    #     softmax = list(enumerate(-logits[random_idx, :].detach().float().log_softmax(-1).cpu()))
+    #     print(f"\tsoftmax of logits at position {random_idx} => {softmax}")
+    #     print(f"\tsum of softmax at position {random_idx} => {sum([s for idx, s in softmax])}")
+
     # run dfs
     result = explore(model, logits, input_ids[pos:], eos_token_id, max_new_tokens, -np.log(min_prob), pos, [cache])
 
@@ -115,6 +125,8 @@ def dfs(model, input_ids, eos_token_id, max_new_tokens, min_prob, pos=None, atte
 def infer_single(prompt, model_tok, guess=None, min_prob=None, cache=None, **kwargs):
     assert len(prompt)
 
+    # Remove caching guesses
+    cache = None
     if cache is not None:  # try loading result from cache
         return cache(infer_single)(prompt=prompt, model_tok=model_tok, guess=guess, min_prob=min_prob, **kwargs)
 
@@ -132,7 +144,8 @@ def infer_single(prompt, model_tok, guess=None, min_prob=None, cache=None, **kwa
                 tokenized = tokenizer(guess, return_tensors='pt').to(model.device)
                 tokenized.pop('token_type_ids', None)
             ret = dfs(model, **tokenized, pos=input_len, min_prob=min_prob, eos_token_id=tokenizer.eos_token_id, **kwargs)
-
+            # >> [np.array, float]. Array is some sequence of tokens, float is the score of the sequence
+            
         else:  # run model 'generate' function
             assert kwargs.get('num_beams', 1) == 1 or not is_unsloth_model(model)
             gen = model.generate(**tokenized, return_dict_in_generate=True, output_logits=True, use_cache=True,
@@ -141,6 +154,7 @@ def infer_single(prompt, model_tok, guess=None, min_prob=None, cache=None, **kwa
             logits = torch.stack(gen['logits'], axis=-2)[0].float().cpu()
             ret = [(sequence, logits_to_score(sequence, logits))]
 
+        # Decode sequence ret[0] and return the score ret[1]
         return [(tokenizer.decode(o), s) for o, s in ret]
 
 
@@ -161,17 +175,23 @@ def infer_task(keys, dataset, fmt_opts, aug_score_opts=None, pass_guess=True, pr
 
         # run inference
         data = infer_single(prompt=fmt['input'], guess=guess, **kwargs)
+        # >> [(output sequence, score)]
 
         # loop over inference outputs
         for i, (sequence, score) in enumerate(data):
             # decode output
             output, correct, corr_info = dataset.decode(sequence, fmt_opts['lines_sep'], key)
+            # corr_info can be one of: 
+                # "ALL_CORRECT" when the output grid is identical to the solution grid
+                # "bad_xy_size" when the output grid has different dimensions than the solution grid
+                # "bad_conent" when the output grid has the same dimensions as the solution grid but different content
 
             # print some info
             token_info = f" in:{input_len:>4} out:{dataset.count_tokens(sequence):>3}/{reply_len:>3}"
-            score_info = f"{min(np.exp(-score), 0.99):>3.0%}"
             shape_info = f'{output.shape[0]:>2}x{output.shape[1]:<2}' if output is not None else '--x--'
+            score_info = f"{min(np.exp(-score), 0.99):>3.0%}"
             print_func(f"{token_info} > {shape_info} {corr_info} p={score_info} [{key}.out{i}]")
+            # >>  in: 775 out:421/421 > 20x20 ALL_CORRECT p=89% [feca6190_0.tp.rt.rt.rt.perm5830642791.ex4-3-1-2-0.out0]
 
             if output is not None:
                 # add output to results
@@ -200,7 +220,11 @@ def infer_task(keys, dataset, fmt_opts, aug_score_opts=None, pass_guess=True, pr
 
 
 def inference_run(dataset, fmt_opts, max_new_tokens=None, callback=None, **kwargs):
-    # set token limits
+    """
+    callback is eval_tool.process_result,
+    """
+
+    #  set token limits
     if max_new_tokens is None:
         max_new_tokens = dataset.max_new_tokens(**fmt_opts)
     if 'max_tokens' in fmt_opts:
@@ -208,13 +232,24 @@ def inference_run(dataset, fmt_opts, max_new_tokens=None, callback=None, **kwarg
 
     # iterate over dataset
     results = {}
-    with tqdm(dataset.grouped_keys().items(), desc='inference') as pbar:
-        for base_key, tasks in pbar:
-            results[base_key] = []
-            for task_num, task in enumerate(tasks):
-                res = infer_task(keys=task, dataset=dataset, fmt_opts=fmt_opts, max_new_tokens=max_new_tokens,
-                                 print_func=pbar.write, **kwargs)
-                results[base_key].append(res)
-                if callback is not None:
-                    callback(res, name=f'{base_key}_{task_num}', value=1/len(tasks), print_func=pbar.write)
+    for base_key, tasks in tqdm(dataset.grouped_keys().items(), desc='inference'):
+        results[base_key] = []
+        for task_num, task in enumerate(tasks):
+            res = infer_task(keys=task, dataset=dataset, fmt_opts=fmt_opts, max_new_tokens=max_new_tokens, **kwargs)
+            results[base_key].append(res)
+            if callback is not None:
+                callback(res, name=f'{base_key}_{task_num}', value=1/len(tasks))
     return results
+
+    # # iterate over dataset
+    # results = {}
+    # with tqdm(dataset.grouped_keys().items(), desc='inference') as pbar:
+    #     for base_key, tasks in pbar:
+    #         results[base_key] = []
+    #         for task_num, task in enumerate(tasks):
+    #             res = infer_task(keys=task, dataset=dataset, fmt_opts=fmt_opts, max_new_tokens=max_new_tokens,
+    #                              print_func=pbar.write, **kwargs)
+    #             results[base_key].append(res)
+    #             if callback is not None:
+    #                 callback(res, name=f'{base_key}_{task_num}', value=1/len(tasks), print_func=pbar.write)
+    # return results

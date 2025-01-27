@@ -63,9 +63,18 @@ class EvalTool(object):   # providing on-the-fly evaluation of scoring algorithm
         self.count = 0  # counting number of tasks seen
 
     def process_result(self, res, name, value, print_func=print):
+        """
+        res: contains multiple - len(res) many - candidate outputs
+        name: the task id
+        """
+        # Calculate scores for each result using all scoring algorithms
         for r in res:
             r['scores_alg'] = [algo(r) for algo in self.score_algos]
+        
+        # Find the position of the correct solution if any
         pos = ([i for i, r in enumerate(res) if r['correct']] + [None])[0]
+
+        # The rest is essentially just bookkeeping and displaying results for this task
         self.count += value
         self.a_acc += value if pos is not None else 0
         corr_info = f"{len(res)} candidates, correct solution {'not found' if pos is None else 'FOUND'}"

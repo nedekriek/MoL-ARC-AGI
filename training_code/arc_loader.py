@@ -260,6 +260,7 @@ class ArcDataset(object):
         return key, fmt
 
     def repeat(self, n, seed=None):
+        # Repeats each key n times and optionally shuffles the order of the keys
         if seed is not None:
             np.random.seed(seed)
         new_keys = []
@@ -338,6 +339,7 @@ class ArcDataset(object):
             data = [row for row in data if len(row)]
             data = np.array(data, dtype=int)
             assert data.ndim == 2 and all(0 < x <= 30 for x in data.shape)
+            # Might be what causes blank attempts
         except:
             data = None
             correct, info = False, 'cant_decode'

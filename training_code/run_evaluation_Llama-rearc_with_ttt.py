@@ -27,22 +27,47 @@ from inference_tools import inference_run
 from selection import EvalTool
 
 # input paths
+print(f"\nStarting at working directory: {os.getcwd()}")
+# >> /gpfs/scratch1/nodespecific/gcn2/dlindberg.9574510
+
 base_model = 'da-fr/Llama-3.2-3B-ARChitects-ReArc-bnb-4bit'  # auto-downloaded from huggingface.co
-arc_data_path = os.path.join('input', 'arc-prize-2024')  # as on kaggle arc prize 2024
+print(f"base_model path: {base_model}\n")
+
+# arc_data_path = os.path.join('input', 'arc-prize-2024')  # as on kaggle arc prize 2024
 
 # output paths
 output_path = 'output_evaluation_Llama-rearc_with_ttt'
+os.makedirs(output_path, exist_ok=True)
+
 save_model_path = os.path.join(output_path, 'finetuned_model')
 inference_cache = os.path.join(output_path, 'inference_cache')
 submission_file = os.path.join(output_path, 'submission.json')
 
-# load evaluation dataset
-arc_eval_set = ArcDataset.load_from_json(os.path.join(arc_data_path, 'arc-agi_evaluation_challenges.json'))
-arc_eval_set = arc_eval_set.load_solutions(os.path.join(arc_data_path, 'arc-agi_evaluation_solutions.json'))
+# load training dataset
+path_arc_data_train = os.path.join(".", "data", "arc-agi_training_challenges.json")
+path_arc_data_test = os.path.join(".", "data", "arc-agi_training_solutions.json")
+
+print(f"Trying to load data from {path_arc_data_train}...")
+arc_eval_set = ArcDataset.load_from_json(path_arc_data_train)
+arc_eval_set = arc_eval_set.load_solutions(path_arc_data_test)
+print(f"\tSuccessfully loaded data\n")
+
+# Create smaller subset
+split_seed = 132  # For reproducibility
+num_splits = 4    # Creates 25% splits, take only the first
+arc_eval_splits = arc_eval_set.split(n=num_splits, split_seed=split_seed)
+arc_eval_subset = arc_eval_splits[0]  # Take first subset
+
+# Print sizes to verify
+print(f"Original dataset size: {len(arc_eval_set.keys)}")
+print(f"Subset size: {len(arc_eval_subset.keys)}\n")
+
+arc_eval_set = arc_eval_subset
 
 # load model
 retrain = not os.path.exists(save_model_path)
 model, tokenizer = load_unsloth_4bit(base_model if retrain else save_model_path)
+print(f"Successfully loaded 4-bit model using unsloth with retrain {retrain}\n")
 
 # set formatting options
 fmt_opts = dict(
@@ -73,6 +98,7 @@ if retrain:
     # augment data set and transform to list (eventually removing examples to stay below the max. token count)
     train_aug_opts = dict(tp=True, rt=True, perm=True, shfl_ex=True, seed=0)
     train_dataset_augment = arc_eval_set.remove_test_data().repeat(n=48, seed=0).augment(**train_aug_opts)
+    print(f"Augmented training dataset size: {len(train_dataset_augment.keys)}\n")
     train_dataset_as_list = train_dataset_augment.as_list(len_name='text', **fmt_opts)
 
     # run test-time training
@@ -92,7 +118,7 @@ if retrain:
         ),
         args=TrainingArguments(
             per_device_train_batch_size=2,
-            gradient_accumulation_steps=2,
+            gradient_accumulation_steps=2, # could be set to 4, uncertain if better 
             warmup_ratio=0.25,
             num_train_epochs=1,
             learning_rate=1e-4,
