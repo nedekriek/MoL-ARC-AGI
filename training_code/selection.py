@@ -52,9 +52,10 @@ all_score_algos = [
     max_aug_prob,  # highest probability from augmented scoring
     min_aug_prob,  # lowest probability from augmented scoring
     sum_aug_prob,  # sum of probabilites from augmented scoring
-    sum_all_prob,  # sum of probabilities from inference results and augmented scoring
-    mul_aug_prob,  # sum of log probabilities from augmented scoring
-    mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
+    sum_all_prob
+    #,  # sum of probabilities from inference results and augmented scoring
+    # mul_aug_prob,  # sum of log probabilities from augmented scoring
+    # mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
 ]
 
 
