@@ -31,6 +31,10 @@ def sum_aug_prob(res):
     scores = list(res['scores_aug'].values())
     return sum([-np.exp(-s) for s in scores])
 
+def sum_all_prob(res):
+    scores = list(res['scores_aug'].values())
+    scores.extend(res['scores_inf'].values())
+    return sum([-np.exp(-s) for s in scores])
 
 def mul_aug_prob(res, base_log_prob=3):
     scores = list(res['scores_aug'].values())
@@ -48,8 +52,10 @@ all_score_algos = [
     max_aug_prob,  # highest probability from augmented scoring
     min_aug_prob,  # lowest probability from augmented scoring
     sum_aug_prob,  # sum of probabilites from augmented scoring
-    mul_aug_prob,  # sum of log probabilities from augmented scoring
-    mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
+    sum_all_prob
+    #,  # sum of probabilities from inference results and augmented scoring
+    # mul_aug_prob,  # sum of log probabilities from augmented scoring
+    # mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
 ]
 
 
