@@ -82,7 +82,7 @@ all_score_algos = [
     #,  # sum of probabilities from inference results and augmented scoring
     # mul_aug_prob,  # sum of log probabilities from augmented scoring
     # mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
-    top_n_augs_mult(res,4) # only takes the best 4 augmentation types for each task and multiplies them
+    top_n_augs_mult # only takes the best 4 augmentation types for each task and multiplies them
 ]
 
 
