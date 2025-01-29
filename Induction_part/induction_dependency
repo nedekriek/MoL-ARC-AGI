@@ -1,0 +1,7 @@
+git+https://github.com/xu3kev/arc-py.git
+vllm
+pebble
+func_timeout
+scipy
+func_timeout
+orjsonl
