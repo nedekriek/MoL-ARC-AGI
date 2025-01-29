@@ -9,5 +9,6 @@
     "prompt_engineering": true,
     "MULTI_EXECUTE": true,
     "folder_path": "ARC-AGI/data",
-    "debug_threshold": 0.9
+    "debug_threshold": 0.9,
+    "saving_file": "arc_problems_validation_400_extra_newline_v2_Llama-3.1-ARC-Potpourri-Induction-8B_temp_0.8_0129173148270132.jsonl"
 }

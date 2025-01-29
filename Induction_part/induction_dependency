@@ -3,5 +3,4 @@ vllm
 pebble
 func_timeout
 scipy
-func_timeout
 orjsonl

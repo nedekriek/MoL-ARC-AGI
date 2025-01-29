@@ -59,7 +59,8 @@ class prompt_creator:
             prompt += f"Example {i+1}\n"
             prompt += f"Input:\n{grid_to_text(pair['input'] , transpose)}\nOutput:\n{grid_to_text(pair['output'], transpose)}\n\n" 
         prompt += "Here is the input grid for the test example:\n"
-        prompt += "Input:\n" +  grid_to_text(problem.test[0]["input"], transpose) + "\n"
+        for pair in problem.test:
+            prompt += "Input:\n" +  grid_to_text(problem.pair.x, transpose) + "\n"
         common_lib_prefix = ""
         prompt = common_lib_prefix + prompt
         prompt += "\nWrite a Python function `transform` that can convert any given input grid to its corresponding output grid based on the pattern observed in the reference examples."
@@ -73,7 +74,7 @@ class prompt_creator:
         ]
         return message
     
-    def create_debugging_prompt(code, problem, transpose = False):
+    def create_debugging_prompt(self, code, problem, transpose = False):
 
         prompt = "Given the input-output grid pairs as reference examples, the following code aims to observe the patterns to both reproduce the outputs from inputs in the example and predict the output grid for new test input. However, it is not working as expected. Carefully observe the patterns of the input-output grid and the code to identify the bug and fix it."
         prompt += "\nHere is the code:\n" + code
@@ -81,11 +82,12 @@ class prompt_creator:
         i = 0
         for pair in problem.train_pairs:
             i += 1
-            code_output = execute_transformation(source = code, input = pair.x, function_name="transform")
+            code_output = execute_transformation(source = code, input_grid = pair.x, function_name="transform")
             prompt += f"Example {i+1}\n"
             prompt += f"Input:\n{grid_to_text(pair.x , transpose)}\nOutput:\n{grid_to_text(pair.y, transpose)}\n Result of the program applied on the input: \n{grid_to_text(code_output)}\n\n"  
         prompt += "Here is the input grid for the test example:\n"
-        prompt += "Input:\n" +  grid_to_text(problem.test[0]["input"], transpose) + "\n"
+        for pair in problem.test_pairs:
+            prompt += "Input:\n" +  grid_to_text(pair.x, transpose) + "\n"
         common_lib_prefix = ""
         prompt = common_lib_prefix + prompt
         prompt += "\nDebug the Python function `transform` so that it can convert any given input grid to its corresponding output grid based on the pattern observed in the reference examples."

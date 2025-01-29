@@ -39,11 +39,14 @@ def debug_program(code, problem, prompt_creator, llm, tokenizer, temperature = 0
     debuged_codes = []
 
     for llm_outputs in aggregate_outputs:  
-        parsed_codes = parse_code(llm_outputs)
-        if parsed_codes:
-                code = parsed_codes[0]
-        else:
-                code = ""
-        debuged_codes.append(code)
+        for llm_output in llm_outputs:
+            for i in range(len(llm_output.outputs)):
+                generated_text = llm_output.outputs[i].text
+                parsed_codes = parse_code(generated_text)
+                if parsed_codes:
+                    code = parsed_codes[0]
+                else:
+                    code = ""
+                debuged_codes.append(code)
 
     return debuged_codes

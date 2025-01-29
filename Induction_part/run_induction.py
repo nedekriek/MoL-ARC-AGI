@@ -51,6 +51,7 @@ folder_path = config["folder_path"]
 MULTI_EXECUTE = config["MULTI_EXECUTE"]
 debug_threshold = config["debug_threshold"]
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+saving_file = config["saving_file"]
 
 
 ##################################
@@ -77,17 +78,6 @@ elif mode == "evaluation":
     folder_path = folder_path + "/" + "evaluation"
 
 problems = load_data(folder_path, mode)
-##################################
-# Saving file
-##################################
-
-datetime_str = datetime.datetime.now().strftime("%m%d%H%M%S%f")
-if LORA_DIR:
-    saving_file = f"{problem_file.replace('.jsonl', '')}_{LORA_DIR.split('/')[-1]}_temp_{TEMPERATURE}_{datetime_str}.jsonl"
-else:
-    saving_file = f"{problem_file.replace('.jsonl', '')}_{BASE_MODEL.split('/')[-1]}_temp_{TEMPERATURE}_{datetime_str}.jsonl"
-print(f"Saving to {saving_file}")
-time.sleep(5)
 
 ##################################
 # Inference
@@ -217,6 +207,8 @@ def execute_evaluate():
         ##################################
 
         results, output_grids = multi_validate(arc_problem, codes)
+        promising_code = []
+        promising_code_num = 0
         for idx, result in enumerate(results):
                 assert len(result) == len(arc_problem.train_pairs + arc_problem.test_pairs)
                 train_verdict = all([verdict for verdict, _ in result[:len(arc_problem.train_pairs)]])
@@ -225,12 +217,20 @@ def execute_evaluate():
                 min_ratio = min([ratio for _, ratio in result])
                 icon = "[+]" if train_verdict else "[ ]"
                 print(f"    {icon} Code {idx}: on training examples: {train_verdict}, max_ratio: {max_ratio}, min_ratio: {min_ratio}")
-
                 if train_verdict:
                     output_grid = output_grids[idx]
                     problem_that_works_on_training_examples[uid] = [{'attempt_1': output_grid, 'attempt_2': None}]
-                elif min_ratio > debug_threshold:
-                    debugged_codes = debug_program(codes[idx], arc_problem, prompt_creator_obj, llm, tokenizer)
+                    break
+                if min_ratio > debug_threshold and promising_code_num<=3:
+                    promising_code_num += 1
+                    promising_code.append(codes[idx])
+                
+
+        if any(train_verdicts):
+                continue
+        elif promising_code != []:
+            for code in promising_code:
+                    debugged_codes = debug_program(code = code, problem = arc_problem,prompt_creator= prompt_creator_obj,llm= llm,tokenizer= tokenizer)
                     print(f"    debugging code {idx}")
                     debuged_results, debuged_output_grids = multi_validate(arc_problem, debugged_codes)
                     debuged_train_verdicts = []
