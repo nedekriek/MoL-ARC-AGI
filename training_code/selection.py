@@ -46,16 +46,43 @@ def mul_all_prob(res, base_log_prob=3):
     scores.extend(res['scores_inf'].values())
     return sum([s - base_log_prob for s in scores])
 
+def top_n_augs_mult(res,n = 4):
+    # first, sum scores across types of augmentations    
+    augtype_sum = dict()
+    for key in res['scores_aug']:
+        augtype_key = key[key.find('.'):] #this is the aug suffix, e.g.  key1.tp.rt -> .tp.rt
+    
+        if augtype_key not in augtype_sum:
+            augtype_sum[augtype_key] = res['scores_aug'][key]
+        else: 
+            augtype_sum[augtype_key] += res['scores_aug'][key]
+    
+    # find the top n augmentations by sum of their scores  
+    top_n_augs = sorted(augtype_sum, key=augtype_sum.get, reverse=True)[:n]
+
+    # get base key / use list comprehension to reformat top_n_augs
+    # DO THEY ALL HAVE THE SAME BASE KEY???? I believe so.
+    base_key = list(res['scores_aug'].keys())[0].split('.',1)[0]
+    top_keys = [base_key + aug_suffix for aug_suffix in top_n_augs]
+
+    # filter score dict to top augs
+    top_keys_w_scores = {key: res['scores_aug'][key] for key in top_keys}
+
+    # multiply top scores with inf score
+    scores = list(top_keys_w_scores.values())
+    scores.extend(res['scores_inf'].values())
+    return sum([s - base_log_prob for s in scores])
 
 all_score_algos = [
     max_gen_prob,  # highest probability from inference results
     max_aug_prob,  # highest probability from augmented scoring
     min_aug_prob,  # lowest probability from augmented scoring
     sum_aug_prob,  # sum of probabilites from augmented scoring
-    sum_all_prob
+    sum_all_prob,
     #,  # sum of probabilities from inference results and augmented scoring
     # mul_aug_prob,  # sum of log probabilities from augmented scoring
     # mul_all_prob,  # sum of log probabilities from inference results and augmented scoring combined
+    top_n_augs_mult # only takes the best 4 augmentation types for each task and multiplies them
 ]
 
 
