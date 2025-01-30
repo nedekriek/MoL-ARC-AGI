@@ -31,7 +31,7 @@ Install the required dependencies on a compute node:
 sbatch install_dependencies.sh
 ```
 
-This command will create a new Conda environment with all the necessary requirements.
+This command will create two new Conda environments, one for the induction model and one for the transduction model. These environments are automatically activated and deactivated during a run.
 
 ---
 
@@ -51,7 +51,7 @@ This command will run the pipeline using the following SLURM settings:
 #SBATCH --cpus-per-task=18
 #SBATCH --gpus=1
 #SBATCH --partition=gpu_a100
-#SBATCH --time=06:00:00
+#SBATCH --time=12:00:00
 ```
 
 ---
